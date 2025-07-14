@@ -48,8 +48,13 @@
         // Ball 类
         class Ball {
             constructor(x, y, radius, color, points, type) {
-                this.x = x;
-                this.y = y;
+                // 增加边界限制
+                const minX = radius;
+                const maxX = canvas.width - radius;
+                const minY = radius;
+                const maxY = canvas.height - radius;
+                this.x = Math.max(minX, Math.min(x, maxX));
+                this.y = Math.max(minY, Math.min(y, maxY));
                 this.radius = radius;
                 this.color = color;
                 this.dx = 0;
@@ -94,22 +99,30 @@
                 } else {
                     this.x += this.dx;
                     this.y += this.dy;
-                    if (this.x - this.radius < 0) {
-                        this.x = this.radius;
+                    // 增加边界限制
+                    const minX = this.radius;
+                    const maxX = canvas.width - this.radius;
+                    const minY = this.radius;
+                    const maxY = canvas.height - this.radius;
+                    if (this.x < minX) {
+                        this.x = minX;
                         this.dx = -this.dx * 0.9;
-                    } else if (this.x + this.radius > canvas.width) {
-                        this.x = canvas.width - this.radius;
+                    } else if (this.x > maxX) {
+                        this.x = maxX;
                         this.dx = -this.dx * 0.9;
                     }
-                    if (this.y - this.radius < 0) {
-                        this.y = this.radius;
+                    if (this.y < minY) {
+                        this.y = minY;
                         this.dy = -this.dy * 0.9;
-                    } else if (this.y + this.radius > canvas.height) {
-                        this.y = canvas.height - this.radius;
+                    } else if (this.y > maxY) {
+                        this.y = maxY;
                         this.dy = -this.dy * 0.9;
                     }
                 }
                 this.checkPocket();
+                // === 强制边界保护，防止球心超出画布 ===
+                this.x = Math.max(this.radius, Math.min(this.x, canvas.width - this.radius));
+                this.y = Math.max(this.radius, Math.min(this.y, canvas.height - this.radius));
             }
             checkPocket() {
                 pockets.forEach(pocket => {
@@ -139,6 +152,15 @@
                                 this.dx = 0;
                                 this.dy = 0;
                                 this.inPocket = false;
+                                // 增加边界限制，防止白球复位到边缘
+                                const minX = this.radius;
+                                const maxX = canvas.width - this.radius;
+                                const minY = this.radius;
+                                const maxY = canvas.height - this.radius;
+                                this.x = Math.max(minX, Math.min(Math.max(this.radius, 120), maxX));
+                                this.y = Math.max(minY, Math.min(canvas.height / 2, maxY));
+                                this.dx = 0;
+                                this.dy = 0;
                                 if (!balls.includes(this)) balls.push(this);
                             }, 1200);
                         }
@@ -207,25 +229,43 @@
             const dCenterY = tableH / 2;
             const dRadius = tableH * 0.143;
             // 白球（D区左侧）
-            cueBall = new Ball(dCenterX - dRadius * 0.7, dCenterY, ballRadius, "#f0f0f0", 0, "cue");
+            let cueX = dCenterX - dRadius * 0.7;
+            cueX = Math.max(ballRadius, cueX); // 保证不靠左边缘
+            cueBall = new Ball(cueX, dCenterY, ballRadius, "#f0f0f0", 0, "cue");
             balls.push(cueBall);
             // 黄球（D区下）
-            balls.push(new Ball(dCenterX, dCenterY + dRadius, ballRadius, "#ffd944", 2, "yellow"));
-            colorBallPositions["yellow"] = {x: dCenterX, y: dCenterY + dRadius};
+            let yellowX = dCenterX;
+            let yellowY = dCenterY + dRadius;
+            yellowX = Math.max(ballRadius, Math.min(yellowX, tableW - ballRadius));
+            yellowY = Math.max(ballRadius, Math.min(yellowY, tableH - ballRadius));
+            balls.push(new Ball(yellowX, yellowY, ballRadius, "#ffd944", 2, "yellow"));
+            colorBallPositions["yellow"] = {x: yellowX, y: yellowY};
             // 绿球（D区上）
-            balls.push(new Ball(dCenterX, dCenterY - dRadius, ballRadius, "#4ade80", 3, "green"));
-            colorBallPositions["green"] = {x: dCenterX, y: dCenterY - dRadius};
+            let greenX = dCenterX;
+            let greenY = dCenterY - dRadius;
+            greenX = Math.max(ballRadius, Math.min(greenX, tableW - ballRadius));
+            greenY = Math.max(ballRadius, Math.min(greenY, tableH - ballRadius));
+            balls.push(new Ball(greenX, greenY, ballRadius, "#4ade80", 3, "green"));
+            colorBallPositions["green"] = {x: greenX, y: greenY};
             // 棕球（D区正中）
-            balls.push(new Ball(dCenterX, dCenterY, ballRadius, "#a16240", 4, "brown"));
-            colorBallPositions["brown"] = {x: dCenterX, y: dCenterY};
+            let brownX = dCenterX;
+            let brownY = dCenterY;
+            brownX = Math.max(ballRadius, Math.min(brownX, tableW - ballRadius));
+            brownY = Math.max(ballRadius, Math.min(brownY, tableH - ballRadius));
+            balls.push(new Ball(brownX, brownY, ballRadius, "#a16240", 4, "brown"));
+            colorBallPositions["brown"] = {x: brownX, y: brownY};
             // 蓝球（球台正中）
-            const blueX = tableW / 2;
-            const blueY = tableH / 2;
+            let blueX = tableW / 2;
+            let blueY = tableH / 2;
+            blueX = Math.max(ballRadius, Math.min(blueX, tableW - ballRadius));
+            blueY = Math.max(ballRadius, Math.min(blueY, tableH - ballRadius));
             balls.push(new Ball(blueX, blueY, ballRadius, "#5b92ff", 5, "blue"));
             colorBallPositions["blue"] = {x: blueX, y: blueY};
             // 粉球（蓝球和红球三角之间）
-            const pinkX = tableW * 3/4;
-            const pinkY = tableH / 2;
+            let pinkX = tableW * 3/4;
+            let pinkY = tableH / 2;
+            pinkX = Math.max(ballRadius, Math.min(pinkX, tableW - ballRadius));
+            pinkY = Math.max(ballRadius, Math.min(pinkY, tableH - ballRadius));
             balls.push(new Ball(pinkX, pinkY, ballRadius, "#ff7eb8", 6, "pink"));
             colorBallPositions["pink"] = {x: pinkX, y: pinkY};
             // 红球三角（靠近右侧，基于粉球点右侧）
@@ -236,16 +276,20 @@
             for (let row = 0; row < triangleRows; row++) {
                 for (let i = 0; i <= row; i++) {
                     if (redCount >= 15) break;
-                    const x = triStartX + row * ballRadius * Math.sqrt(3);
-                    const y = pinkY - row * ballRadius + i * 2 * ballRadius;
-                    reds.push(new Ball(x, y, ballRadius, "#ff5e56", 1, "red"));
+                    let redX = triStartX + row * ballRadius * Math.sqrt(3);
+                    let redY = pinkY - row * ballRadius + i * 2 * ballRadius;
+                    redX = Math.max(ballRadius, Math.min(redX, tableW - ballRadius));
+                    redY = Math.max(ballRadius, Math.min(redY, tableH - ballRadius));
+                    reds.push(new Ball(redX, redY, ballRadius, "#ff5e56", 1, "red"));
                     redCount++;
                 }
             }
             reds.forEach(ball => balls.push(ball));
             // 黑球（最右侧）
-            const blackX = tableW * 7.5/8;
-            const blackY = tableH / 2;
+            let blackX = tableW * 7.5/8;
+            let blackY = tableH / 2;
+            blackX = Math.max(ballRadius, Math.min(blackX, tableW - ballRadius));
+            blackY = Math.max(ballRadius, Math.min(blackY, tableH - ballRadius));
             balls.push(new Ball(blackX, blackY, ballRadius, "#2a2a2e", 7, "black"));
             colorBallPositions["black"] = {x: blackX, y: blackY};
             createBallStatusList();
@@ -779,6 +823,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawTable();
             ballsMoving = false;
+            // 先更新所有球
             for (let i = 0; i < balls.length; i++) {
                 balls[i].update();
                 for (let j = i + 1; j < balls.length; j++) {
@@ -787,8 +832,17 @@
                 if (!ballsMoving && !balls[i].inPocket && (Math.abs(balls[i].dx) > 0.5 || Math.abs(balls[i].dy) > 0.5)) {
                     ballsMoving = true;
                 }
-                balls[i].draw();
                 balls[i].highlight = false;
+            }
+            // 先画所有非白球
+            for (let i = 0; i < balls.length; i++) {
+                if (balls[i].type !== 'cue') {
+                    balls[i].draw();
+                }
+            }
+            // 最后画白球（cueBall）
+            if (cueBall && !cueBall.inPocket) {
+                cueBall.draw();
             }
             balls = balls.filter(ball => !ball.inPocket || ball.type === 'cue');
             if (playerTurn && gameState.includes("player") && !ballsMoving) {
@@ -1089,8 +1143,13 @@
         function resetColorBallPosition(ball) {
             const pos = colorBallPositions[ball.type];
             if (pos) {
-                ball.x = pos.x;
-                ball.y = pos.y;
+                // 增加边界限制，防止球心超出边缘
+                const minX = ball.radius;
+                const maxX = canvas.width - ball.radius;
+                const minY = ball.radius;
+                const maxY = canvas.height - ball.radius;
+                ball.x = Math.max(minX, Math.min(pos.x, maxX));
+                ball.y = Math.max(minY, Math.min(pos.y, maxY));
                 ball.dx = 0;
                 ball.dy = 0;
             }
